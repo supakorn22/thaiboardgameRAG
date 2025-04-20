@@ -232,20 +232,22 @@ def completions():
     # Get user query and parameters from request
     data = request.get_json()
     query = data.get("prompt", "")
-    stream = data.get("stream", False)
-    temperature = data.get("temperature", 0.7)
-    max_tokens = data.get("max_tokens", 512)
-    top_p = data.get("top_p", 1.0)
-    top_k = data.get("top_k", -1)
+    # stream = data.get("stream", False)
+    # temperature = data.get("temperature", 0.7)
+    # max_tokens = data.get("max_tokens", 512)
+    # top_p = data.get("top_p", 1.0)
+    # top_k = data.get("top_k", -1)
+    top_n = data.get("top_n", 3) 
     
     # Print all params for debugging
     logger.debug("[Completion] Request data:")
     logger.debug(f"Query: {data.get('prompt')}")
-    logger.debug(f"Stream: {data.get('stream')}")
-    logger.debug(f"Temperature: {data.get('temperature')}")
-    logger.debug(f"Max tokens: {data.get('max_tokens')}")
-    logger.debug(f"Top p: {data.get('top_p')}")
-    logger.debug(f"Top k: {data.get('top_k')}")
+    # logger.debug(f"Stream: {data.get('stream')}")
+    # logger.debug(f"Temperature: {data.get('temperature')}")
+    # logger.debug(f"Max tokens: {data.get('max_tokens')}")
+    # logger.debug(f"Top p: {data.get('top_p')}")
+    # logger.debug(f"Top k: {data.get('top_k')}")
+    logger.debug(f"Top n: {data.get('top_n')}")
     
     # Step 1: Generate query embedding
     query_embedding = generate_embedding(query).numpy().flatten().tolist()
@@ -284,55 +286,18 @@ def completions():
 
     # Step 3: Re-rank retrieved documents using BGE reranker
     ranked_indices = rerank_documents(query_embedding, document_embeddings)
-    top_documents = [retrieved_documents[i] for i, _ in ranked_indices[:3]]
+    top_documents = [retrieved_documents[i] for i, _ in ranked_indices[:top_n]]
 
-    # Step 4: Prepare prompt for VLLM with top re-ranked documents
-    system_prompt = os.environ.get('SYSTEM_PROMPT', 'คุณคือ OpenThaiGPT พัฒนาโดยสมาคมผู้ประกอบการปัญญาประดิษฐ์ประเทศไทย (AIEAT)')
-    prompt = f"จากเอกสารต่อไปนี้\n\n"
-    prompt += "\n\n".join([doc.get('text') for doc in top_documents])
-    prompt += f"\n\nจงตอบคำถามต่อไปนี้: {query}"
-
-    prompt_chatml = f"<|im_start|>system\nคุณคือผู้ช่วยตอบคำถามที่ฉลาดและซื่อสัตย์ {system_prompt}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
-    logger.info(f"Prompt: {prompt_chatml}")
-
-    # Step 5: Generate final response with VLLM
-    if stream:
-        def generate():
-            response = requests.post(
-                f'{VLLM_HOST}/v1/completions',
-                json={
-                    "model": ".",
-                    "prompt": prompt_chatml,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                    "top_p": top_p,
-                    "top_k": top_k,
-                    "stream": True,
-                    "stop": ["<|im_end|>"]
-                },
-                stream=True
-            )
-            for line in response.iter_lines():
-                if line:
-                    # Decode the byte string to a regular string
-                    decoded_line = line.decode('utf-8')
-                    yield f"{decoded_line}\n\n"
-            yield "\n"
-        return Response(generate(), mimetype='text/event-stream')
-    else:
-        response = requests.post(
-            f'{VLLM_HOST}/v1/completions',
-            json={
-                "model": ".",
-                "prompt": prompt_chatml,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "top_p": top_p,
-                "top_k": top_k,
-                "stop": ["<|im_end|>"]
+    # Return multiple top documents
+    return jsonify({
+        "top_documents": [
+            {
+                "id": doc.get("id"),
+                "text": doc.get("text")
             }
-        )
-        return response.json()
+            for doc in top_documents
+        ]
+    })
 
 # if __name__ == "__main__":
 #     app.run(host="0.0.0.0", port=5000, debug=False)

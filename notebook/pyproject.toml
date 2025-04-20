@@ -1,0 +1,21 @@
+[project]
+name = "notebook"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ipywidgets>=8.1.6",
+    "marshmallow==3.26.1",
+    "numpy>=2.2.5",
+    "pymilvus==2.4.7",
+    "scikit-learn>=1.6.1",
+    "sentence-transformers>=4.1.0",
+    "torch>=2.6.0",
+    "transformers>=4.51.3",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]
