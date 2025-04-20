@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def read_and_index_docs(docs_dir='./docs', index_url='http://localhost:5000/index'):
+def read_and_index_docs(docs_dir='./docs', index_url='http://localhost:5001/index'):
     """
     Read .txt files from the specified directory and index their contents.
     
@@ -17,6 +17,7 @@ def read_and_index_docs(docs_dir='./docs', index_url='http://localhost:5000/inde
     indexed_files = 0
     non_indexed_files = 0
     
+    selected_lines = ['Meta data','Content']
     for filename in os.listdir(docs_dir):
         if filename.endswith('.txt'):
             file_path = os.path.join(docs_dir, filename)
@@ -30,12 +31,13 @@ def read_and_index_docs(docs_dir='./docs', index_url='http://localhost:5000/inde
                 title = lines[0]  # Get the first line as the title
                 current_chunk = title + '\n'  # Start each chunk with the title
                 for line in lines[1:]:  # Skip the first line (title) in this loop
-                    if len(current_chunk) + len(line) + 1 <= 1000:  # +1 for newline
-                        current_chunk += line + '\n'
-                    else:
-                        if current_chunk:
-                            chunks.append(current_chunk.strip())
-                        current_chunk = title + '\n' + line + '\n'  # Start a new chunk with the title
+                    if any(line.startswith(prefix) for prefix in selected_lines):
+                        if len(current_chunk) + len(line) + 1 <= 1000:  # +1 for newline
+                            current_chunk += line + '\n'
+                        else:
+                            if current_chunk:
+                                chunks.append(current_chunk.strip())
+                            current_chunk = title + '\n' + line + '\n'  # Start a new chunk with the title
                 if current_chunk:
                     chunks.append(current_chunk.strip())
 

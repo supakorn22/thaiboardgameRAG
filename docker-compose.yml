@@ -56,6 +56,15 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+  attu:
+    image: zilliz/attu
+    container_name: milvus-attu
+    ports:
+      - "3000:3000"
+    environment:
+      - MILVUS_URL=milvus:19530
+    depends_on:
+      - milvus
 
 volumes:
   milvus_data:
