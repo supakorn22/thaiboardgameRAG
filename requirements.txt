@@ -6,3 +6,4 @@ scikit-learn
 gunicorn
 numpy
 openai==0.28
+marshmallow>=3.13,<4.0
