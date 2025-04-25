@@ -11,3 +11,4 @@ don't to the dependency :
 
 ```bash
 uv  run --with mcp[cli],requests mcp run **/server.py
+```
