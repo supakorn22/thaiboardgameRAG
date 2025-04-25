@@ -281,8 +281,8 @@ def completions():
                 document_embeddings.append(embedding)
 
     # Log retrieved documents and document embeddings
-    logger.debug(f"Retrieved documents: {retrieved_documents}")
-    logger.debug(f"Document embeddings: {document_embeddings}")
+    # logger.debug(f"Retrieved documents: {retrieved_documents}")
+    # logger.debug(f"Document embeddings: {document_embeddings}")
 
     # Step 3: Re-rank retrieved documents using BGE reranker
     ranked_indices = rerank_documents(query_embedding, document_embeddings)
@@ -291,13 +291,8 @@ def completions():
     # Return multiple top documents
     return jsonify({
         "top_documents": [
-            {
-                "id": doc.get("id"),
-                "text": doc.get("text")
-            }
-            for doc in top_documents
+            doc.get("text") for doc in top_documents
         ]
     })
-
 # if __name__ == "__main__":
 #     app.run(host="0.0.0.0", port=5000, debug=False)
