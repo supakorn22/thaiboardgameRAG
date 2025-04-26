@@ -21,7 +21,7 @@ A Retrieval-Augmented Generation (RAG) system for Thai language documents. This 
 docker-compose up -d
 ```
 
-This will launch the services. The default query API runs on port `5000`, but if it's already in use, the project may fall back to port `5001`.
+This will launch the services. The default query API runs on port `5001`.
 
 ### 2. Index Documents
 
@@ -42,8 +42,6 @@ This script reads `.txt` files from the `/doc` directory and inserts their embed
 You can query documents via the following endpoints:
 
 ```
-POST http://localhost:5000/completions
-# or (if port 5000 is in use)
 POST http://localhost:5001/completions
 ```
 
