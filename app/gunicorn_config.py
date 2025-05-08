@@ -7,13 +7,13 @@ bind = "0.0.0.0:5000"
 workers = 1
 
 # Number of threads per worker
-threads = 1
+threads = 4
 
 # Worker class
 worker_class = "sync"
 
 # Timeout for worker processes
-timeout = 120
+timeout = 120000
 
 # Maximum number of requests a worker will process before restarting
 max_requests = 1000
