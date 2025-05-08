@@ -8,6 +8,9 @@ import json
 import os
 import numpy as np
 import logging
+from sentence_transformers import SentenceTransformer
+import re
+
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', force=True)
 logger = logging.getLogger(__name__)
 
@@ -17,6 +20,9 @@ logger.info("Logger initialized for Flask application")
 MILVUS_HOST = os.environ.get('MILVUS_HOST', 'milvus')
 MILVUS_PORT = os.environ.get('MILVUS_PORT', '19530')
 VLLM_HOST = os.environ.get('VLLM_HOST', 'https://api.aieat.or.th')
+MODEL_NAME = "Alibaba-NLP/gte-multilingual-base"
+MODEL_DIM = 768
+
 
 # Update Milvus connection settings
 connections.connect("default", host=MILVUS_HOST, port=MILVUS_PORT)
@@ -30,7 +36,7 @@ def initialize_milvus_collection():
 
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1024),  # Adjust dim if needed
+            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=MODEL_DIM),  # Adjust dim if needed
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535)
         ]
         schema = CollectionSchema(fields, "Document embeddings for Information database")
@@ -40,7 +46,7 @@ def initialize_milvus_collection():
         index_params = {
             "metric_type": "L2",
             "index_type": "IVF_FLAT",
-            "params": {"nlist": 1024}
+            "params": {"nlist": MODEL_DIM}
         }
         collection.create_index("embedding", index_params)
     else:
@@ -58,19 +64,21 @@ logger.info("Successfully connected with MILVUS database.")
 app = Flask(__name__)
 logger.info("Successfully Setup Flask Web Service.")
 
-logger.info("Loading... BAAI/bge-m3 embedding model")
-# Load BAAI/bge-m3 model and tokenizer
-bge_model = AutoModel.from_pretrained("BAAI/bge-m3")
-logger.info("Loading... BAAI/bge-m3 tokenizer model")
-bge_tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3")
-logger.info("Successfully Load BAAI/bge-m3 embedding and tokenizer.")
+# logger.info("Loading... BAAI/bge-m3 embedding model")
+# # Load BAAI/bge-m3 model and tokenizer
+# bge_model = AutoModel.from_pretrained("BAAI/bge-m3")
+# logger.info("Loading... BAAI/bge-m3 tokenizer model")
+# bge_tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3")
+# logger.info("Successfully Load BAAI/bge-m3 embedding and tokenizer.")
+# logger.info("Now it is ready to serve.")
+logger.info(f"Loading... {MODEL_NAME} embedding model")
+bge_model = SentenceTransformer(MODEL_NAME, trust_remote_code=True)
+logger.info(f"Successfully Load {MODEL_NAME} embedding model.")
 logger.info("Now it is ready to serve.")
 
 # Function to generate embeddings
 def generate_embedding(text):
-    inputs = bge_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    with torch.no_grad():
-        embeddings = bge_model(**inputs).pooler_output
+    embeddings = bge_model.encode(text,convert_to_numpy=False)
     return embeddings
 
 # Rerank documents based on cosine similarity
@@ -287,11 +295,36 @@ def completions():
     # Step 3: Re-rank retrieved documents using BGE reranker
     ranked_indices = rerank_documents(query_embedding, document_embeddings)
     top_documents = [retrieved_documents[i] for i, _ in ranked_indices[:top_n]]
-
+    title_doc_set = set()
+    
+    for idx, doc in enumerate(top_documents):
+        
+        match = re.search(r'Title:\s*(.*?)\n', doc.get("text"))
+        if match:
+            extracted_title = match.group(1)
+            title_doc_set.add(extracted_title)
+                
+    top_doc_txt = []
+    selected_lines = ['Title','Meta data','Content','Additional Info','Box Contents','Sleeve Contents']
+    for title in title_doc_set:
+        path = f"../docs/{title}.txt"
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            lines = content.split('\n')
+            content = ""
+            for line in lines:
+                if any(line.startswith(prefix) for prefix in selected_lines):
+                    # Check if the line is not empty
+                    if line.strip():
+                        # Append the line to the list
+                        content += line + '\n'
+            
+            top_doc_txt.append(content)
+            
     # Return multiple top documents
     return jsonify({
         "top_documents": [
-            doc.get("text") for doc in top_documents
+            doc for doc in top_doc_txt
         ]
     })
 # if __name__ == "__main__":
