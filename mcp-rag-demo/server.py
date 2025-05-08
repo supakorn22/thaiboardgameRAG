@@ -4,7 +4,12 @@ from mcp.server.fastmcp import FastMCP
 import sys
 
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = FastMCP(
+    name="mcp-boardgame-rag",
+    dependencies=["requests"],
+    description="A tool to search for board games based on user queries.",
+    version="0.0.1",
+)
 
 
 # Add an addition tool
@@ -41,8 +46,8 @@ def search_board_game(prompt: str, top_n: int = 3) -> list:
     return response.json()["top_documents"]
 
 
-# Add a dynamic greeting resource
-@mcp.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
+# # Add a dynamic greeting resource
+# @mcp.resource("greeting://{name}")
+# def get_greeting(name: str) -> str:
+#     """Get a personalized greeting"""
+#     return f"Hello, {name}!"
