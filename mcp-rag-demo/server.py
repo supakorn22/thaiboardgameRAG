@@ -4,14 +4,19 @@ from mcp.server.fastmcp import FastMCP
 import sys
 
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = FastMCP(
+    name="mcp-boardgame-rag",
+    dependencies=["requests"],
+    description="A tool to search for board games based on user queries.",
+    version="0.0.1",
+)
 
 
 # Add an addition tool
 @mcp.tool()
 def search_board_game(prompt: str, top_n: int = 3) -> list:
     """
-    Search for board game from user describe.
+    Search for a board game based on a user's description.
 
     Parameters:
         prompt (str): A question or query, ideally asking for board game suggestions or themes.
@@ -21,7 +26,6 @@ def search_board_game(prompt: str, top_n: int = 3) -> list:
     Returns:
         list: A list of board game documents, each with the following structure:
             str          # A formatted string containing the board game title, meta data, and description
-            
 
     Example result:
         [
@@ -31,8 +35,8 @@ def search_board_game(prompt: str, top_n: int = 3) -> list:
 
     Notes:
         - This tool should only be used for Thai-language prompts specifically related to board games.
-        - Recheck the responce to ensure it is relevant to prompt if not change the prompt and try again.
-        
+        - Double-check the response to ensure it is relevant to the prompt; if not, adjust the prompt and try again.
+        - If you want to search for board game expansions or extensions, consider increasing top_n to 5 or more.
     """
     response = requests.post(
         "http://localhost:5001/completions",
@@ -42,8 +46,8 @@ def search_board_game(prompt: str, top_n: int = 3) -> list:
     return response.json()["top_documents"]
 
 
-# Add a dynamic greeting resource
-@mcp.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
+# # Add a dynamic greeting resource
+# @mcp.resource("greeting://{name}")
+# def get_greeting(name: str) -> str:
+#     """Get a personalized greeting"""
+#     return f"Hello, {name}!"
